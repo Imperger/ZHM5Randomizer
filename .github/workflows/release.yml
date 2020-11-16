@@ -1,0 +1,37 @@
+name: Release
+on:
+  push:
+    tags:
+    - 'v*'
+jobs:
+  release:
+    name: Publish
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Extract tag
+        id: ex
+        run: echo "::set-output name=tag::$(git describe --tags HEAD)"
+      - uses: ilammy/msvc-dev-cmd@v1
+      - run: cmake -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
+      - run: nmake
+      - run: 7z a -tzip release.zip ./assets/* DINPUT8.dll
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ZHM5Randomizer ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Uplaod assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release.zip
+          asset_name: ZHM5Randomizer_${{ steps.ex.outputs.tag  }}.zip
+          asset_content_type: application/zip
